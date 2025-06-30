@@ -82,6 +82,16 @@ export default class Sketch {
       1000
     )
 
+    var frustumSize = 1;
+    var aspect = window.innerWidth / window.innerHeight;
+    this.cameraFinal = new THREE.OrthographicCamera(
+      frustumSize / -2,
+      frustumSize / 2,
+      frustumSize / 2,
+      frustumSize / -2,
+      -1000,
+      1000
+    )
     this.camera.position.set(0, 0, 2)
     this.camera1.position.set(0, 0, 2)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -92,13 +102,14 @@ export default class Sketch {
 
     this.create360()
     this.createPlanet()
+    this.createFinalScene()
     this.resize()
     this.render()
     this.setupResize()
+    this.settings()
   }
 
   settings() {
-    let that = this;
     this.settings = {
       progress: 0,
     }
@@ -137,11 +148,16 @@ export default class Sketch {
   create360() {
     this.geometry = new THREE.SphereGeometry(10, 30, 30)
 
+    // DONT NEED THIS : Reverse the image texture
+    let t = new THREE.TextureLoader().load(sphere360);
+    t.wrapS = THREE.RepeatWrapping;
+    t.repeat.x = -1;
+
     this.sphere = new THREE.Mesh(
       this.geometry, 
       // this.material
       new THREE.MeshBasicMaterial({
-        map: new THREE.TextureLoader().load(sphere360),
+        map: t,
         side: THREE.BackSide
       })
     )
@@ -150,18 +166,6 @@ export default class Sketch {
   }
 
   createPlanet() {
-    this.material = new THREE.ShaderMaterial({
-      // extensions: { derivatives: true, fragDepth: true, drawBuffers: true },
-      side: THREE.DoubleSide,
-      uniforms: {
-        time: { value: 0 },
-        resolution: { value: new THREE.Vector4() }
-      },
-      vertexShader: vertex,
-      fragmentShader: fragment,
-      wireframe: true
-    })
-
     this.group = new THREE.Group()
     
     this.earth = new THREE.Mesh(
@@ -207,15 +211,57 @@ export default class Sketch {
             this.group.quaternion.copy(animatedQuaternion);
           }
         })
+        gsap.to(this.settings, {
+          duration: 1,
+          delay: 0.5,
+          progress: 1,
+          // ease: 'power2.inOut',
+          // onUpdate: () => {
+          //   this.material.uniforms.progress.value = this.settings.progress;
+          // }
+        })
         let coords = calcPosFromLatLonRad(p.coords.lat, p.coords.lng);
         this.group.quaternion.copy(coords.quaternion);
       })
     })
   }
 
+  createFinalScene() {
+    this.texture360 = new THREE.WebGLRenderTarget(this.width, this.height, {
+      format: THREE.RGBFormat,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+    });
+
+    this.texturePlanet = new THREE.WebGLRenderTarget(this.width, this.height, {
+      format: THREE.RGBFormat,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+    });
+
+    this.material = new THREE.ShaderMaterial({
+      // extensions: { derivatives: true, fragDepth: true, drawBuffers: true },
+      side: THREE.DoubleSide,
+      uniforms: { 
+        progress: { value: 0 },
+        scene360: { value: null },
+        scenePlanet: { value: null }
+      },
+      vertexShader: vertex,
+      fragmentShader: fragment,
+      // wireframe: true
+    })
+
+    let geo = new THREE.PlaneGeometry(1, 1);
+    let mesh = new THREE.Mesh(geo, this.material);
+
+    this.sceneFinal.add(mesh);
+  }
+
   stop() {
     this.isPlaying = false
   }
+
   play() {
     if (!this.isPlaying) {
       this.isPlaying = true;
@@ -228,8 +274,19 @@ export default class Sketch {
     this.time += 0.05
     // this.material.uniforms.time.value = this.time
     requestAnimationFrame(this.render.bind(this))
-    // this.renderer.render(this.scene360, this.camera)
-    this.renderer.render(this.scenePlanet, this.camera)
+
+    this.renderer.setRenderTarget(this.texture360);
+    this.renderer.render(this.scene360, this.camera);
+
+    this.renderer.setRenderTarget(this.texturePlanet);
+    this.renderer.render(this.scenePlanet, this.camera);
+
+    this.material.uniforms.scene360.value = this.texture360.texture;
+    this.material.uniforms.scenePlanet.value = this.texturePlanet.texture;
+    this.material.uniforms.progress.value = this.settings.progress;
+
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.sceneFinal, this.cameraFinal);
   }
 }
 

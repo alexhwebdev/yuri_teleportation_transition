@@ -1,4 +1,5 @@
 uniform float time;
+uniform float progress;
 varying vec2 vUv;
 varying vec3 vPosition;
 uniform sampler2D texture1;

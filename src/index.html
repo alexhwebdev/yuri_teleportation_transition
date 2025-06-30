@@ -1,13 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shader Patterns</title>
-    <link rel="stylesheet" href="./style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shader Patterns</title>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    canvas {
+      display: block;
+    }
+    #container {
+      width: 100vw;
+      height: 100vh;
+    }
+    #list {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 100;
+      font-size: 24px;
+    }
+    
+  </style>
 </head>
 <body>
-    <div id="container" style="width: 100vw; height: 100vh;"></div>
-    <script type="module" src="./script.js"></script>
+  <div id="list"></div>
+  <div id="container"></div>
+  <script type="module" src="./script.js"></script>
 </body>
 </html>
